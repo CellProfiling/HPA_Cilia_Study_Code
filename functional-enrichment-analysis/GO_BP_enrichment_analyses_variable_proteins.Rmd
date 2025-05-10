@@ -1,0 +1,557 @@
+---
+title: "Comparative functional enrichment analysis between proteins annotated as displaying intensity variation in one of the four ciliary locations and annotated as stable"
+author: "Konstantin Kahnert"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    df_print: paged
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+  pdf_document: default
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dev = "CairoSVG", message = FALSE, warning = FALSE)
+```
+
+# Load libraries
+
+```{r}
+library(tidyverse)          
+library(clusterProfiler)    
+library(enrichplot)         
+library(org.Hs.eg.db)  
+library(Cairo) 
+library(VennDiagram)       
+library(grid)               
+library(simplifyEnrichment)
+library(readxl)
+```
+
+# Define functions
+
+```{r}
+# map_cluster_number: 
+#   - x: enrichResult or compareClusterResult (from clusterProfiler)
+#   - df: simplifyGO result data.frame with columns ID (term IDs) and Cluster_num
+#   - comp: if TRUE, use x@compareClusterResult, else x@result
+# Returns a data.frame of all enrich columns + term_size + Cluster_num
+map_cluster_number <- function(x,
+                               df,
+                               comp = FALSE) {
+  ## 1. Standardize the input DF’s column names
+  colnames(df) <- c("ID", "Cluster_num")
+
+  ## 2. Select the correct slot from the clusterProfiler object
+  if (comp) {
+    # from compareClusterResult
+    results <- x@compareClusterResult
+  } else {
+    # from a single enrichResult
+    results <- x@result
+  }
+
+  ## 3. Get term_size (the numerator of the "BgRatio" string)
+  ##    e.g. "12/21273" → 12
+  results$term_size <- as.numeric(
+    sapply(strsplit(results$BgRatio, "/"),
+           function(parts) as.numeric(parts[1]))
+  )
+
+  ## 4. Merge the enrichment results with the cluster assignments
+  merged_results <- merge(
+    results,
+    df,
+    by    = "ID",
+    all.x = TRUE
+  )
+
+  ## 5. Return the processed data frame
+  return(merged_results)
+}
+
+
+# Function to map Ensembl IDs to gene symbols for a single row
+map_geneID_to_symbol <- function(geneID_str) {
+  geneIDs <- unlist(strsplit(geneID_str, "/"))
+  mapped_ids <- bitr(geneIDs, 
+                     fromType = "ENSEMBL", 
+                     toType = "SYMBOL", 
+                     OrgDb = org.Hs.eg.db)
+  
+  # drop duplicates in ensembl column and keep first occurence
+  mapped_ids <- mapped_ids[!duplicated(mapped_ids$ENSEMBL),]
+  
+  gene_symbols <- mapped_ids$SYMBOL
+  return(paste(gene_symbols, collapse = "/"))
+}
+
+
+# Function to map Ensembl IDs to gene symbols for a single row
+map_geneID_to_name <- function(geneIDs) {
+  mapped_ids <- bitr(geneIDs, 
+                     fromType = "ENSEMBL", 
+                     toType = c("GENENAME", "SYMBOL"), 
+                     OrgDb = org.Hs.eg.db)
+  
+  # drop duplicates in ensembl column and keep first occurence
+  mapped_ids <- mapped_ids[!duplicated(mapped_ids$ENSEMBL),]
+  
+  return(mapped_ids)
+}
+
+```
+
+# Data loading and preprocessing
+
+## Set input and output paths
+
+```{r}
+# set input and output paths
+in_path <- "/mnt/Data/Projects/Cilia/revision/NonRestricted/data/"
+out_path <- "/mnt/Data/Projects/Cilia/revision/NonRestricted/analysis/GO_BP/"
+```
+
+## Load data
+
+```{r}
+# Load the data
+df_all <- read.delim(paste0(in_path, "All_files_combined_as_cytoscape_input.csv"), sep = "\t", header = TRUE, row.names = 1)
+head(df_all)
+
+```
+
+## Map gene names and symbols
+```{r}
+# Identify columns that contain "num" in their names
+num_columns <- grep("num", names(df_all), value = TRUE)
+
+# Convert all other columns from string to logical
+df_all <- df_all %>%
+  mutate(across(-all_of(num_columns), ~ as.logical(.)))
+
+# map gene IDs to gene names 
+mapped_ids <- map_geneID_to_name(rownames(df_all))
+
+# index by Ensembl
+rownames(mapped_ids) <- mapped_ids$ENSEMBL
+
+# pull out exactly one entry per row of df_all
+df_all$GeneSymbol <- mapped_ids[ rownames(df_all), "SYMBOL"   ]
+df_all$GeneName   <- mapped_ids[ rownames(df_all), "GENENAME" ]
+
+# add rownames as column and reset index
+df_all$Ensembl_ID <- rownames(df_all)
+rownames(df_all) <- NULL
+
+# reorder columns to have Ensembl_ID first, Symbol and Gene name first and then all other columns
+df_all <- df_all %>%  dplyr::select(Ensembl_ID, GeneSymbol, GeneName, everything())
+```
+
+## Split data by location
+```{r}
+# Perform filtering again
+df_bb <- df_all %>% filter(BasalBody_ == TRUE)
+df_pc <- df_all %>% filter(PrimaryCilia_ == TRUE)
+df_tip <- df_all %>% filter(PrimaryCiliaTip_ == TRUE)
+df_tz <- df_all %>% filter(PrimaryCiliaTZ_ == TRUE)
+
+# filter gene_id by location
+gene_id_all <- df_all$Ensembl_ID
+gene_id_bb <- df_bb$Ensembl_ID
+gene_id_pc <- df_pc$Ensembl_ID
+gene_id_tip <- df_tip$Ensembl_ID
+gene_id_tz <- df_tz$Ensembl_ID
+```
+
+## Combine bb & tz and pc & tip
+```{r}
+# combine pc and tip and tz
+df_pc_tip_tz <- rbind(df_pc, df_tip, df_tz)
+
+# drop duplicates based on Ensembl_ID column
+df_pc_tip_tz <- df_pc_tip_tz[!duplicated(df_pc_tip_tz$Ensembl_ID), ]
+gene_id_pc_tip_tz <- df_pc_tip_tz$Ensembl_ID
+
+```
+
+# Compare biological themes for different locations with variable proteins
+
+## Define variable genes
+
+```{r}
+# Load the data from the Excel file
+df <- read_excel("/mnt/Data/Projects/Cilia/revision/Filtered_Staining_List_combined_exploded.xlsx")
+
+# Identify Ensembl IDs for each category by searching substrings in the "Annotation (Intensity)" column
+tip_variable <- unique(df$`Ensembl id`[grepl("Primary cilium tip", df$`Annotation (Intensity)`)])
+pc_variable  <- unique(df$`Ensembl id`[grepl("Primary cilium",     df$`Annotation (Intensity)`)])
+tz_variable  <- unique(df$`Ensembl id`[grepl("Primary cilium transition zone", df$`Annotation (Intensity)`)])
+
+# Combine all variable genes and remove duplicates
+variable_genes <- unique(c(pc_variable, tip_variable, tz_variable))
+
+# Identify any non-variable genes
+non_variable <- setdiff(gene_id_pc_tip_tz, variable_genes)
+```
+
+## Map as columns to df_all and save as csv file
+```{r}
+# add "Intensity variation" columns to df_all with true if in variable genes, false if in non_variable and NA otherwise
+df_all <- df_all %>%
+  mutate(
+    Intensity_variation = case_when(
+      Ensembl_ID %in% variable_genes ~ TRUE,
+      Ensembl_ID %in% non_variable   ~ FALSE,
+      TRUE                            ~ NA   # catch-all case for any other Ensembl IDs
+    )
+  )
+
+# write to file
+write.csv(df_all, file = paste0(out_path, "NonRestricted_all_proteins_enrichment_input_mapping.csv"))
+```
+
+
+## GO BP enrichment analysis
+```{r}
+# Split data by location
+input_genes <- list(
+  non_variable = non_variable,
+  variable = variable_genes
+)
+
+# check length of each list
+lapply(input_genes, length)
+
+```
+
+```{r}
+comp <- compareCluster(geneCluster = input_genes,
+                     fun = "enrichGO",
+                     OrgDb = org.Hs.eg.db,
+                     keyType       = 'ENSEMBL',
+                     ont           = "BP",
+                     pAdjustMethod = "BH",
+                     pvalueCutoff  = 0.01,
+                     qvalueCutoff  = 0.01)
+```
+
+
+### Dot plot of all enriched terms
+```{r, dev = 'svg', fig.width=14, fig.height=50}
+# plot dotplot
+dotplot(comp, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
+
+# save dotplot as svg file
+ggsave(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot.svg"), plot = last_plot(), device = "svg", width = 14, height = 50, limitsize = FALSE)
+
+```
+
+### Visualize overlap of enriched terms
+
+```{r, dev = 'svg', fig.width=6, fig.height=6}
+# extract results
+results <- comp@compareClusterResult
+
+# split by location
+variable <- results[results$Cluster == "variable",]
+non_variable <- results[results$Cluster == "non_variable",]
+
+# Create a list of sets
+go_lists <- list(
+  variable = variable$ID,
+  non_variable = non_variable$ID
+)
+
+# Plot the Venn diagram
+venn.plot <- venn.diagram(
+  x = go_lists,
+  category.names = c("variable", "non_variable"),
+  filename = NULL,
+  output = TRUE
+)
+
+grid.newpage()
+grid.draw(venn.plot)
+
+# Save the captured plot as an SVG file
+svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_venn.svg"), width = 6, height = 6)
+grid.draw(venn.plot)
+dev.off()
+
+```
+
+### Filter terms only enriched in one condition
+
+```{r}
+
+# calculate intersection of the two
+unspecific_terms <- intersect(variable$ID, non_variable$ID)
+
+# remove all unspecific terms
+specific_terms <- results %>% filter(!ID %in% unspecific_terms)
+
+# create a copy of comp
+comp_filtered <- comp
+
+# update results in comp
+comp_filtered@compareClusterResult <- specific_terms
+```
+
+### Dot plot of uniquely enriched terms
+```{r, dev = 'svg', fig.width=14, fig.height=50}
+# plot dotplot
+dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
+
+# save dotplot as svg file
+ggsave(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only.svg"), plot = last_plot(), device = "svg", width = 14, height = 50, limitsize = FALSE)
+
+```
+
+
+```{r}
+# Subset for pc_tip
+variable <- comp_filtered@compareClusterResult[
+  comp_filtered@compareClusterResult$Cluster == "variable", 
+]
+
+# Subset for bb_tz
+non_variable <- comp_filtered@compareClusterResult[
+  comp_filtered@compareClusterResult$Cluster == "non_variable", 
+]
+
+# Create new compareClusterResult objects for each subset
+comp_filtered_variable <- comp_filtered
+comp_filtered_non_variable <- comp_filtered
+
+comp_filtered_variable@compareClusterResult <- variable
+comp_filtered_non_variable@compareClusterResult <- non_variable
+
+```
+
+### Cluster results - variable proteins
+
+```{r}
+go_id = comp_filtered_variable@compareClusterResult$ID
+mat = GO_similarity(go_id, 
+                    ont = 'BP', 
+                    db = 'org.Hs.eg.db', 
+                    measure = "Sim_Relevance_2006"
+                    )
+
+```
+
+#### Plot cluster heatmap
+```{r}
+# Capture the plot
+heatmap_plot <- grid.grabExpr({
+ df <- simplifyGO(mat,
+             method = 'binary_cut',
+             plot = TRUE,
+             column_title = "GO BP terms only significant in variable proteins",
+             use_raster = FALSE,
+             order_by_size = TRUE,
+             fontsize_range = c(9, 18),
+             max_words = 6,
+             word_cloud_grob_param = list(col = 'black', 
+                                          max_width = unit(200, "mm")))
+})
+
+# Save the captured plot as an SVG file
+svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_variable_heatmap.svg"), width = 16, height = 9)
+grid.draw(heatmap_plot)
+dev.off()
+```
+
+```{r, dev = 'svg', fig.width=15, fig.height=13}
+grid.newpage()
+grid.draw(heatmap_plot)
+```
+
+#### Process and save results
+
+```{r}
+# add cluster number from GO term clustering
+results <- map_cluster_number(comp_filtered_variable,
+                              df = df,
+                              comp = TRUE
+)
+
+# Apply the function to each row of the DataFrame
+results$GeneSymbol <- sapply(results$geneID, map_geneID_to_symbol)
+
+# save results as csv file
+write.csv(results, file = paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_variable_result.csv"))
+```
+
+### Cluster results - non-variable proteins
+
+```{r}
+go_id = comp_filtered_non_variable@compareClusterResult$ID
+mat = GO_similarity(go_id, 
+                    ont = 'BP', 
+                    db = 'org.Hs.eg.db', 
+                    measure = "Sim_Relevance_2006"
+                    )
+
+```
+
+#### Plot cluster heatmap
+```{r}
+# Capture the plot
+heatmap_plot <- grid.grabExpr({
+ df <- simplifyGO(mat,
+             method = 'binary_cut',
+             plot = TRUE,
+             column_title = "GO BP terms only significant in non-variable proteins",
+             use_raster = FALSE,
+             order_by_size = TRUE,
+             fontsize_range = c(18, 36),
+             max_words = 6,
+             word_cloud_grob_param = list(col = 'black', 
+                                          max_width = unit(200, "mm")))
+})
+
+# Save the captured plot as an SVG file
+svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_nonvariable_heatmap.svg"), width = 16, height = 9)
+grid.draw(heatmap_plot)
+dev.off()
+```
+
+```{r, dev = 'svg', fig.width=16, fig.height=6}
+grid.newpage()
+grid.draw(heatmap_plot)
+```
+
+#### Process and save results
+
+```{r}
+# add cluster number from GO term clustering
+results <- map_cluster_number(comp_filtered_non_variable,
+                              df = df,
+                              comp = TRUE
+)
+
+# Apply the function to each row of the DataFrame
+results$GeneSymbol <- sapply(results$geneID, map_geneID_to_symbol)
+
+# save results as csv file
+write.csv(results, file = paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_nonvariable_result.csv"))
+```
+
+### Filter for terms enriched in both variable and non-variable
+
+```{r}
+ # get results as data frame
+# extract results
+results <- comp@compareClusterResult
+
+# split by location
+variable <- results[results$Cluster == "variable",]
+non_variable <- results[results$Cluster == "non_variable",]
+
+# calculate intersection of the two
+unspecific_terms <- intersect(variable$ID, non_variable$ID)
+
+# remove all unspecific terms
+specific_terms <- results %>% filter(!ID %in% unspecific_terms)
+unspecific_terms <- results %>% filter(ID %in% unspecific_terms)
+
+# create a copy of comp
+comp_filtered <- comp
+
+# update results in comp
+comp_filtered@compareClusterResult <- unspecific_terms
+```
+
+### Plot dotplot of shared terms
+```{r, dev = 'svg', fig.width=14, fig.height=10}
+# plot dotplot
+dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
+
+# save dotplot as svg file
+ggsave(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_only.svg"), plot = last_plot(), device = "svg", width = 14, height = 10, limitsize = FALSE)
+
+```
+
+### Cluster results - Both locations
+
+```{r}
+
+# Split by location
+variable <- comp_filtered@compareClusterResult[comp_filtered@compareClusterResult$Cluster == "variable", ]
+non_variable <- comp_filtered@compareClusterResult[comp_filtered@compareClusterResult$Cluster == "non_variable", ]
+
+# Create new compareClusterResult objects for each subset
+comp_filtered_variable<- comp_filtered
+comp_filtered_non_variable <- comp_filtered
+
+comp_filtered_variable@compareClusterResult <- variable
+comp_filtered_non_variable@compareClusterResult <- non_variable
+
+```
+
+#### Plot cluster heatmap
+```{r}
+go_id = comp_filtered_variable@compareClusterResult$ID
+mat = GO_similarity(go_id, 
+                    ont = 'BP', 
+                    db = 'org.Hs.eg.db', 
+                    measure = "Sim_Relevance_2006"
+                    )
+
+```
+
+```{r}
+# Capture the plot
+heatmap_plot <- grid.grabExpr({
+ df <- simplifyGO(mat,
+             method = 'binary_cut',
+             plot = TRUE,
+             column_title = "GO BP terms significant in both locations",
+             use_raster = FALSE,
+             order_by_size = TRUE,
+             fontsize_range = c(18, 36),
+             max_words = 6,
+             word_cloud_grob_param = list(col = 'black', 
+                                          max_width = unit(200, "mm")))
+})
+
+# Save the captured plot as an SVG file
+svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_heatmap.svg"), width = 16, height = 9)
+grid.draw(heatmap_plot)
+dev.off()
+```
+
+```{r, dev = 'svg', fig.width=16, fig.height=6}
+grid.newpage()
+grid.draw(heatmap_plot)
+```
+
+#### Process and save results
+
+```{r}
+# add cluster number from GO term clustering
+results <- map_cluster_number(comp_filtered_variable,
+                              df = df,
+                              comp = TRUE
+)
+
+# Apply the function to each row of the DataFrame
+results$GeneSymbol <- sapply(results$geneID, map_geneID_to_symbol)
+
+# save results as csv file
+write.csv(results, file = paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_result_variable.csv"))
+```
+
+# Session info
+```{r}
+sessionInfo()
+```
+
