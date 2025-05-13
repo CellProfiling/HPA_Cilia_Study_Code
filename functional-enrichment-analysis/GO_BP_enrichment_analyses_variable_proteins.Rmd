@@ -3,6 +3,9 @@ title: "Comparative functional enrichment analysis between proteins annotated as
 author: "Konstantin Kahnert"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:  
+    latex_engine: xelatex   
+    keep_tex: false
   html_document:
     toc: true
     df_print: paged
@@ -10,11 +13,10 @@ output:
     number_sections: true
     theme: flatly
     highlight: tango
-  pdf_document: default
 ---
 
 ```{r, setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, dev = "CairoSVG", message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, dev = "cairo_pdf", message = FALSE, warning = FALSE)
 ```
 
 # Load libraries
@@ -25,6 +27,7 @@ library(clusterProfiler)
 library(enrichplot)         
 library(org.Hs.eg.db)  
 library(Cairo) 
+library(svglite)
 library(VennDiagram)       
 library(grid)               
 library(simplifyEnrichment)
@@ -241,7 +244,7 @@ comp <- compareCluster(geneCluster = input_genes,
 
 
 ### Dot plot of all enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=50}
+```{r, fig.width=14, fig.height=50}
 # plot dotplot
 dotplot(comp, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -253,7 +256,7 @@ ggsave(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot.svg"), 
 
 ### Visualize overlap of enriched terms
 
-```{r, dev = 'svg', fig.width=6, fig.height=6}
+```{r, fig.width=6, fig.height=6}
 # extract results
 results <- comp@compareClusterResult
 
@@ -279,7 +282,7 @@ grid.newpage()
 grid.draw(venn.plot)
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_venn.svg"), width = 6, height = 6)
+svglite(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_venn.svg"), width = 6, height = 6)
 grid.draw(venn.plot)
 dev.off()
 
@@ -303,7 +306,7 @@ comp_filtered@compareClusterResult <- specific_terms
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=50}
+```{r, fig.width=14, fig.height=50}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -356,19 +359,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in variable proteins",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18,36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_variable_heatmap.svg"), width = 16, height = 9)
+svglite(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_variable_heatmap.svg"), width = 16, height = 9)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=13}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -418,12 +421,12 @@ heatmap_plot <- grid.grabExpr({
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_nonvariable_heatmap.svg"), width = 16, height = 9)
+svglite(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_specific_terms_only_nonvariable_heatmap.svg"), width = 16, height = 9)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=16, fig.height=6}
+```{r, fig.width=16, fig.height=6}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -470,7 +473,7 @@ comp_filtered@compareClusterResult <- unspecific_terms
 ```
 
 ### Plot dotplot of shared terms
-```{r, dev = 'svg', fig.width=14, fig.height=10}
+```{r, fig.width=14, fig.height=10}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -524,12 +527,12 @@ heatmap_plot <- grid.grabExpr({
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_heatmap.svg"), width = 16, height = 9)
+svglite(paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_heatmap.svg"), width = 16, height = 9)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=16, fig.height=6}
+```{r, fig.width=16, fig.height=6}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -548,6 +551,20 @@ results$GeneSymbol <- sapply(results$geneID, map_geneID_to_symbol)
 
 # save results as csv file
 write.csv(results, file = paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_result_variable.csv"))
+```
+
+```{r}
+# add cluster number from GO term clustering
+results <- map_cluster_number(comp_filtered_non_variable,
+                              df = df,
+                              comp = TRUE
+)
+
+# Apply the function to each row of the DataFrame
+results$GeneSymbol <- sapply(results$geneID, map_geneID_to_symbol)
+
+# save results as csv file
+write.csv(results, file = paste0(out_path, "NonRestricted_comparison_variable_GO_BP_dotplot_shared_terms_result_nonvariable.csv"))
 ```
 
 # Session info

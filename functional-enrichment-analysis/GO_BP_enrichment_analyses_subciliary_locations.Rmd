@@ -3,6 +3,9 @@ title: "Comparative functional enrichment analysis between subciliary locations 
 author: "Konstantin Kahnert"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:  
+    latex_engine: xelatex   
+    keep_tex: false
   html_document:
     toc: true
     df_print: paged
@@ -10,11 +13,11 @@ output:
     number_sections: true
     theme: flatly
     highlight: tango
-  pdf_document: default
+    self_contained: true
 ---
 
 ```{r, setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, dev = "CairoSVG", message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, dev = "cairo_pdf", message = FALSE, warning = FALSE)
 ```
 
 # Load libraries
@@ -25,6 +28,7 @@ library(clusterProfiler)
 library(enrichplot)         
 library(org.Hs.eg.db)   
 library(Cairo) 
+library(svglite)
 library(VennDiagram)       
 library(grid)               
 library(simplifyEnrichment)
@@ -162,6 +166,16 @@ df_mitotic <- df_all %>% filter(Mitotic == TRUE)
 df_membrane <- df_all %>% filter(Membrane == TRUE)
 df_cytoplasm <- df_all %>% filter(Cytoplasm == TRUE)
 
+# save input data as csv file
+write.csv(df_bb, file = paste0(out_path, "NonRestricted_comparison_locations_input_bb.csv"), row.names = FALSE)
+write.csv(df_pc, file = paste0(out_path, "NonRestricted_comparison_locations_input_pc.csv"), row.names = FALSE)
+write.csv(df_tip, file = paste0(out_path, "NonRestricted_comparison_locations_input_tip.csv"), row.names = FALSE)
+write.csv(df_tz, file = paste0(out_path, "NonRestricted_comparison_locations_input_tz.csv"), row.names = FALSE)
+write.csv(df_nucleus, file = paste0(out_path, "NonRestricted_comparison_locations_input_nucleus.csv"), row.names = FALSE)
+write.csv(df_mitotic, file = paste0(out_path, "NonRestricted_comparison_locations_input_mitotic.csv"), row.names = FALSE)
+write.csv(df_membrane, file = paste0(out_path, "NonRestricted_comparison_locations_input_membrane.csv"), row.names = FALSE)
+write.csv(df_cytoplasm, file = paste0(out_path, "NonRestricted_comparison_locations_input_cytoplasm.csv"), row.names = FALSE)
+
 # filter gene_id by location
 gene_id_all <- df_all$Ensembl_ID
 gene_id_bb <- df_bb$Ensembl_ID
@@ -227,7 +241,7 @@ ego
 
 ### Dot plot of top 100 enriched proteins
 
-```{r, dev = 'svg', fig.width=10, fig.height=20}
+```{r, fig.width=10, fig.height=20}
 dotplot(ego, showCategory=100, label_format = 50) + ggtitle("All Cilia Proteins", subtitle = "Top 100 significantly overrepresented GO BP terms") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 70))
 
@@ -261,7 +275,7 @@ comp <- compareCluster(geneCluster = input_genes,
 ```
 
 ### Dot plot of all enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=70, eval=TRUE}
+```{r, fig.width=14, fig.height=70, eval=TRUE}
 dotplot(comp, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
 
@@ -272,7 +286,7 @@ ggsave(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_
 
 ### Visualize overlap of enriched terms as Venn diagram
 
-```{r, dev = 'svg', fig.width=7, fig.height=6}
+```{r, fig.width=7, fig.height=6}
 # extract results
 results <- comp@compareClusterResult
 
@@ -298,7 +312,7 @@ grid.newpage()
 grid.draw(venn.plot)
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_venn.svg"), width = 7, height = 6)
+svglite(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_venn.svg"), width = 7, height = 6)
 grid.draw(venn.plot)
 dev.off()
 
@@ -321,7 +335,7 @@ comp_filtered@compareClusterResult <- specific_terms
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=50}
+```{r, fig.width=14, fig.height=50}
 # plot(xx, type="dot", caption="GO Enrichment Comparison")
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -381,19 +395,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in primary cilia incl. tip",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_dotplot_specific_terms_only_PC_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_dotplot_specific_terms_only_PC_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=20}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -437,19 +451,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in BB & TZ",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_dotplot_specific_terms_only_BB_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_dotplot_specific_terms_only_BB_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=20}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -494,7 +508,7 @@ comp_filtered@compareClusterResult <- unspecific_terms
 ```
 
 ## Dot plot of shared terms
-```{r, dev = 'svg', fig.width=14, fig.height=50}
+```{r, fig.width=14, fig.height=50}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -541,19 +555,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms significant in both locations",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_dotplot_specific_terms_BB&PC_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "NonRestricted_comparison_locations_cilia_only_combined_GO_BP_dotplot_specific_terms_BB&PC_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=20}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -632,7 +646,7 @@ write.csv(results, file = paste0(out_path, "NonRestricted_comparison_all_locatio
 ```
 
 ### Dot plot of all enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=120, eval=TRUE}
+```{r, fig.width=14, fig.height=120, eval=TRUE}
 dotplot(comp, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 60))
 
@@ -690,7 +704,7 @@ comp_filtered@compareClusterResult <- comp_results_filtered
 ```
 
 ### Dot plot of terms enriched in ciliary locations
-```{r, dev = 'svg', fig.width=16, fig.height=100, eval=TRUE}
+```{r, fig.width=16, fig.height=100, eval=TRUE}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 80))
@@ -722,7 +736,7 @@ comp_filtered@compareClusterResult <- cilia_only_terms
 ```
 
 ### Dot plot of terms only enriched in ciliary locations
-```{r, dev = 'svg', fig.width=14, fig.height=30}
+```{r, fig.width=14, fig.height=30}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -777,7 +791,7 @@ write.csv(results, file = paste0(out_path, "NonRestricted_comparison_all_locatio
 ```
 
 ### Dot plot of all enriched terms (simplified)
-```{r, dev = 'svg', fig.width=14, fig.height=50}
+```{r, fig.width=14, fig.height=50}
 # plot dotplot
 dotplot(comp_simplified, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 80))
@@ -814,7 +828,7 @@ comp_simplified_filtered@compareClusterResult <- comp_results_filtered
 ```
 
 ### Dot plot of terms enriched in ciliary locations (simplified)
-```{r, dev = 'svg', fig.width=14, fig.height=40}
+```{r, fig.width=14, fig.height=40}
 # plot dotplot
 dotplot(comp_simplified_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 80))
@@ -846,7 +860,7 @@ comp_simplified_filtered@compareClusterResult <- cilia_only_terms
 ```
 
 ### Dot plot of terms only enriched in ciliary locations(simplified)
-```{r, dev = 'svg', fig.width=14, fig.height=20}
+```{r, fig.width=14, fig.height=20}
 # plot dotplot
 dotplot(comp_simplified_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 80))
@@ -858,7 +872,7 @@ ggsave(paste0(out_path, "NonRestricted_comparison_all_comparison_locations_GO_BP
 
 #### Check overlap between significant terms and simplified terms
 
-```{r, dev = 'svg', fig.width=5, fig.height=5}
+```{r, fig.width=5, fig.height=5}
 # calculate overlap between comp and comp_simplified results by plotting a venn diagramm
 # extract results
 results <- comp@compareClusterResult$ID
