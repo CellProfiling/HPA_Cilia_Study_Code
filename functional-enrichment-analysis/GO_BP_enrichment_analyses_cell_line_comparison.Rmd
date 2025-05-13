@@ -3,6 +3,9 @@ title: "Comparative functional enrichment analysis between cell lines using only
 author: "Konstantin Kahnert"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:   
+    latex_engine: xelatex   
+    keep_tex: false
   html_document:
     toc: true
     df_print: paged
@@ -10,11 +13,10 @@ output:
     number_sections: true
     theme: flatly
     highlight: tango
-  pdf_document: default
 ---
 
 ```{r, setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, dev = "cairo_pdf", message = FALSE, warning = FALSE)
 ```
 
 # Load libraries
@@ -24,7 +26,8 @@ library(tidyverse)
 library(clusterProfiler)    
 library(enrichplot)         
 library(org.Hs.eg.db) 
-library(Cairo) 
+library(Cairo)
+library(svglite)
 library(VennDiagram)       
 library(grid)               
 library(simplifyEnrichment)
@@ -120,10 +123,6 @@ df_all <- read.delim(paste0(in_path, "Restricted_files_combined_as_cytoscape_inp
 head(df_all)
 
 ```
-
-
-# Compare biological themes for different cell lines (all locations pooled)
-# Split data by cell line
 ```{r}
 # Identify columns that contain "num" in their names
 num_columns <- grep("num", names(df_all), value = TRUE)
@@ -132,15 +131,41 @@ num_columns <- grep("num", names(df_all), value = TRUE)
 df_all <- df_all %>%
   mutate(across(-all_of(num_columns), ~ as.logical(.)))
 
+# map gene IDs to gene names 
+mapped_ids <- map_geneID_to_name(rownames(df_all))
+
+# index by Ensembl
+rownames(mapped_ids) <- mapped_ids$ENSEMBL
+
+# pull out exactly one entry per row of df_all
+df_all$GeneSymbol <- mapped_ids[ rownames(df_all), "SYMBOL"   ]
+df_all$GeneName   <- mapped_ids[ rownames(df_all), "GENENAME" ]
+
+# add rownames as column and reset index
+df_all$Ensembl_ID <- rownames(df_all)
+rownames(df_all) <- NULL
+
+# reorder columns to have Ensembl_ID first, Symbol and Gene name first and then all other columns
+df_all <- df_all %>%  dplyr::select(Ensembl_ID, GeneSymbol, GeneName, everything())
+```
+
+# Compare biological themes for different cell lines (all locations pooled)
+# Split data by cell line
+```{r}
 # Perform filtering again
 df_ASC52telo <- df_all %>% filter(ASC52telo == TRUE)
 df_hTERT <- df_all %>% filter(hTERT_RPE1_serum_starved == TRUE)
 df_RPTEC_TERT1 <- df_all %>% filter(RPTEC_TERT1 == TRUE)
 
+# save input data as csv file
+write.csv(df_ASC52telo, file = paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_input_ASC52telo.csv"))
+write.csv(df_hTERT, file = paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_input_hTERT_RPE1_serum_starved.csv"))
+write.csv(df_RPTEC_TERT1, file = paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_input_RPTEC_TERT1.csv"))
+
 # filter gene_id by cell line
-gene_id_ASC52telo <- row.names(df_ASC52telo)
-gene_id_hTERT <- row.names(df_hTERT)
-gene_id_RPTEC_TERT1 <- row.names(df_RPTEC_TERT1)
+gene_id_ASC52telo <- df_ASC52telo$Ensembl_ID
+gene_id_hTERT <- df_hTERT$Ensembl_ID
+gene_id_RPTEC_TERT1 <- df_RPTEC_TERT1$Ensembl_ID
 
 ```
 
@@ -171,7 +196,7 @@ comp <- compareCluster(geneCluster = input_genes,
 ### Save results as csv file
 
 
-```{r, dev = 'svg', fig.width=14, fig.height=70, eval=TRUE}
+```{r, fig.width=14, fig.height=70, eval=TRUE}
 dotplot(comp, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01") +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
 
@@ -182,7 +207,7 @@ ggsave(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot.svg"), p
 
 ### Visualize overlap of terms
 
-```{r, dev = 'svg', fig.width=7, fig.height=6}
+```{r, fig.width=7, fig.height=6}
 # extract results
 results <- comp@compareClusterResult
 
@@ -217,7 +242,7 @@ grid.newpage()
 grid.draw(venn.plot)
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_venn.svg"), width = 7, height = 6)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_venn.svg"), width = 7, height = 6)
 grid.draw(venn.plot)
 dev.off()
 
@@ -248,7 +273,7 @@ comp_filtered@compareClusterResult <- specific_terms
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=35}
+```{r, fig.width=14, fig.height=35}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -308,19 +333,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in ASC52telo",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_specific_terms_only_ASC52telo_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_specific_terms_only_ASC52telo_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=13}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -362,19 +387,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in hTERT_RPE1_serum_starved",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_specific_terms_only_hTERT_RPE1_serum_starved_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_specific_terms_only_hTERT_RPE1_serum_starved_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=13}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -416,19 +441,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in RPTEC_TERT1",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_specific_terms_only_RPTEC_TERT1_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_specific_terms_only_RPTEC_TERT1_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=9}
+```{r, fig.width=15, fig.height=9}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -472,7 +497,7 @@ comp_filtered@compareClusterResult <- unspecific_terms
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=30}
+```{r, fig.width=14, fig.height=30}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -521,19 +546,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant in all three cell lines",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_terms_in_all_cell_lines_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_cilia_only_combined_GO_BP_dotplot_terms_in_all_cell_lines_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=9}
+```{r, fig.width=15, fig.height=9}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -626,7 +651,7 @@ comp_filtered_RPTEC_TERT1@compareClusterResult <- comp_filtered@compareClusterRe
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=13}
+```{r, fig.width=14, fig.height=13}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison for terms shared between hTERT_RPE1_serum_starved and RPTEC_TERT1", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -658,19 +683,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant shared between hTERT_RPE1_serum_starved and RPTEC_TERT1",
              use_raster = FALSE, 
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot_shared_hTERT_RPTEC_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot_shared_hTERT_RPTEC_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=9}
+```{r, fig.width=15, fig.height=9}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -748,7 +773,7 @@ comp_filtered_RPTEC_TERT1@compareClusterResult <- comp_filtered@compareClusterRe
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=4}
+```{r, fig.width=14, fig.height=4}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison of terms shared between ASC52telo and RPTEC_TERT1", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -780,19 +805,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant shared between ASC52telo and RPTEC_TERT1",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot_shared_ASC52telo_RPTEC_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot_shared_ASC52telo_RPTEC_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=13}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
@@ -871,7 +896,7 @@ comp_filtered_hTERT_RPE1@compareClusterResult <- comp_filtered@compareClusterRes
 ```
 
 ### Dot plot of uniquely enriched terms
-```{r, dev = 'svg', fig.width=14, fig.height=5}
+```{r, fig.width=14, fig.height=5}
 # plot dotplot
 dotplot(comp_filtered, showCategory = NULL) + ggtitle("GO BP Enrichment Comparison of terms shared between ASC52telo and hTERT_RPE1_serum_starved", subtitle = "qvalue < 0.01")  +
   scale_y_discrete(labels = function(x) str_wrap(x, width = 100))
@@ -903,19 +928,19 @@ heatmap_plot <- grid.grabExpr({
              column_title = "GO BP terms only significant shared between ASC52telo and hTERT_RPE1_serum_starved",
              use_raster = FALSE,
              order_by_size = TRUE,
-             fontsize_range = c(9, 18),
+             fontsize_range = c(18, 36),
              max_words = 6,
              word_cloud_grob_param = list(col = 'black', 
                                           max_width = unit(200, "mm")))
 })
 
 # Save the captured plot as an SVG file
-svg(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot_shared_ASC52telo_hTERT_heatmap.svg"), width = 16, height = 8)
+svglite(paste0(out_path, "Restricted_comparison_cell_lines_GO_BP_dotplot_shared_ASC52telo_hTERT_heatmap.svg"), width = 16, height = 8)
 grid.draw(heatmap_plot)
 dev.off()
 ```
 
-```{r, dev = 'svg', fig.width=15, fig.height=13}
+```{r, fig.width=15, fig.height=13}
 grid.newpage()
 grid.draw(heatmap_plot)
 ```
