@@ -99,17 +99,6 @@ dataset_path/
     └── ...
 ```
 
-### Multi-channel TIFF Processing
-For 3D microscopy data:
-```python
-from cilia_utils import read_img_stack, generate_er_mt
-
-# Load multi-channel Z-stack
-nucleic_stack, protein_stack, cilia_stack, bb_stack = read_img_stack("data_path")
-
-# Process and segment cellular components
-image_list = generate_er_mt(nucleic_stack, protein_stack, "output_dir")
-```
 
 ## Model Architectures
 
