@@ -1,7 +1,7 @@
 # HPA Cilia Study - Code repository
 This repository contains the programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity In Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273).
 
-# Downloading data from the protein atlas
+## (1) Downloading data from the protein atlas
 1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., ```https://www.proteinatlas.org/ENSG00000137691-CFAP300/subcellular``` for CFAP300.
 2. In the XML search for the subassay with subtype ("ciliated cell lines"): ```<subAssay type="human" subtype="ciliated cell lines"> ... </subAssay>```
 3. Nested in the subAssay element you will find different "data" elements, which each represent the images for a specific cell line.
@@ -36,7 +36,17 @@ This repository contains the programming code for analyses of the data presented
 
 9. Assemble all images into a multi-channel multi-plane tif stack using the following script: XXX
 
-# Segmenting the images
+## (2) Segmenting the images
 Images downloaded and assembled as described above can be subjected to the [segmentation script](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Image%20segmentation) to create cilia, basal body, and nucleus segmentations.
 
+## (3)  Run CiliaQ analysis on the segmented images
 
+## (4) Extract and normalize intensity profiles
+
+## (5) Run cell cycle predictions on images
+
+## (6) Analyze cell cycle prediction data
+
+## (7) Other bioinformatic analysis of protein lists
+- [Functional enrichment analysis of protein lists](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/functional-enrichment-analysis)
+- [Test if the distribution of the number of subcellular locations of ciliary proteins is significantly different from all proteins in the whole cell](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/supplementary-figure-s2/statistical_analysis_protein_multilocalization.ipynb)
