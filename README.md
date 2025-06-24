@@ -2,8 +2,12 @@
 This repository contains the programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity In Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273).
 
 ## (1) Downloading data from the protein atlas
-1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., ```https://www.proteinatlas.org/ENSG00000137691-CFAP300/subcellular``` for CFAP300.
+1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., https://www.proteinatlas.org/ENSG00000137691.xml for CFAP300.
 2. In the XML search for the subassay with subtype ("ciliated cell lines"): ```<subAssay type="human" subtype="ciliated cell lines"> ... </subAssay>```
+
+![image](https://github.com/user-attachments/assets/d36c0976-48eb-4c22-b280-77ef9b9c0a4c)
+
+
 3. Nested in the subAssay element you will find different "data" elements, which each represent the images for a specific cell line.
 
 ![image](https://github.com/user-attachments/assets/675443fd-7e28-4ee8-b95e-bf596999fde8)
