@@ -1,5 +1,5 @@
 # HPA Cilia Study - Code repository
-This repository contains the programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity In Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273).
+This repository contains instructions and programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity In Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273).
 
 ## (1) Downloading data from the protein atlas
 1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., https://www.proteinatlas.org/ENSG00000137691.xml for CFAP300.
@@ -44,8 +44,21 @@ This repository contains the programming code for analyses of the data presented
 Images downloaded and assembled as described above can be subjected to the [segmentation script](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Image%20segmentation) to create cilia, basal body, and nucleus segmentations.
 
 ## (3)  Run CiliaQ analysis on the segmented images
+1. Run CiliaQ analysis (CiliaQ version V0.2.1) on all 7-channel images with the following CiliaQ settings
 
+*TODO - add screenshots*
+
+2. Collect all CiliaQ output files ending with ```_CQs.txt``` in a folder.
+3. Add the table legend file provided [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Merging_CiliaQ_output_files/0000_Header_CQs.txt) to the folder with all CiliaQ's ```_CQs.txt``` output files. Make sure that this legend file is the first item when alphabetically sorting all files in the folder (if not rename to have it become the first item while keeping the file ending ```_CQs.txt``` intact)
+4. Finally, assemble all ```_CQs.txt```-ending files produced by CiliaQ through concatenating all files ending with ```_CQs.txt``` into a single text file, e.g. by adding [this](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Merging_CiliaQ_output_files/Combiner.bat) Windows batch file to the folder and executing it; it will produce a new file called ```AllCQsFilesMerged.txt``` with all concatenated ```CQs.txt``` files, which can then be used for analyzing statistics on the cilia like the length or orientation angle (as shown in Figure 2 in the preprint).
+ 
 ## (4) Extract and normalize intensity profiles
+1. Use the ```AllCQsFilesMerged.txt``` file from the previous step for this analysis.
+2. Collect all ```_CQl.txt``` files created by CiliaQ in the previous steps in a folder.
+3. Run the analysis as described in the [readme file](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Cilia%20profile%20analysis/readme_create_cilia_profiles.md) and use the scripts in [this repository](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cilia%20profile%20analysis)
+   1. Note that you need to have a specific excel file for this that lists all the images that you want to include and has specific columns available as explained in the readme file.
+   2. The output files from this analysis can be further used to cluster and analyze intensity profiles.
+4. To plot intensity profiles follow this [readme file](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Cilia%20profile%20analysis/readme_plot_profiles.md) and use the scripts in [this repository](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cilia%20profile%20analysis)
 
 ## (5) Run cell cycle predictions on images
 
