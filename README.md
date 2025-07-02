@@ -30,7 +30,7 @@ This repository contains instructions and programming code for analyses of the d
    3. For the yellow Basal body marker channel, the download link will be: ```https://www.proteinatlas.org/download_file.php?filename=``` + the image id (e.g., ```/38585/2146_D7_42_```) + ```_yellow&format=tif.gz```, so e.g., ```https://www.proteinatlas.org/download_file.php?filename=/38585/2146_D7_42_yellow&format=tif.gz```
    4. For the green Protein of interest marker channel, the download link will be: ```https://www.proteinatlas.org/download_file.php?filename=``` + the image id (e.g., ```/38585/2146_D7_42_```) + ```_green&format=tif.gz```, so e.g., ```https://www.proteinatlas.org/download_file.php?filename=/38585/2146_D7_42_green&format=tif.gz```
 
-7. Download for all z planes all four channel .tif.gz files and place them all together into one folder
+7. Download for all z planes all four channel .tif.gz files and place them all together into one folder.
 
 8. Extract all .tif.gz files so they become .tif files and rename each file based on the z plane and the channel to match the following scheme: <image id after removing the front part between / and /> + ```_c``` + <channel number> + ```_z``` + <z_index> + ```.tif```, such as, e.g., ```2146_D7_42_c0_z0.tif``` for the DAPI channel image of the first plane for the example images above.
    1. Use channel number 0 for the DAPI channel
@@ -38,7 +38,7 @@ This repository contains instructions and programming code for analyses of the d
    3. Use channel number 3 for the Protein of interest channel
    4. Use channel number 4 for the Basal body channel
 
-9. Assemble all images into a multi-channel multi-plane tif stack using the following script: XXX
+9. Assemble all images into a multi-channel multi-plane tif stack.
 
 ## (2) Segmenting the images
 Images downloaded and assembled as described above can be subjected to the [segmentation script](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Image%20segmentation) to create cilia, basal body, and nucleus segmentations.
@@ -61,8 +61,10 @@ Images downloaded and assembled as described above can be subjected to the [segm
 4. To plot intensity profiles follow this [readme file](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Cilia%20profile%20analysis/readme_plot_profiles.md) and use the scripts in [this repository](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cilia%20profile%20analysis)
 
 ## (5) Run cell cycle predictions on images
+See readme in https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cell%20cycle%20prediction.
 
 ## (6) Analyze cell cycle prediction data
+See readme in https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cell%20cycle%20prediction.
 
 ## (7) Other bioinformatic analysis of protein lists
 - [Functional enrichment analysis of protein lists](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/functional-enrichment-analysis)
