@@ -1,5 +1,5 @@
 # HPA Cilia Study - Code repository
-This repository contains instructions and programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity In Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273). Please cite our preprint if you reuse data or code.
+This repository contains instructions and programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity of Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273). Please cite our preprint if you reuse data or code.
 
 ## (1) Downloading data from the protein atlas
 1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., https://www.proteinatlas.org/ENSG00000137691.xml for CFAP300.
