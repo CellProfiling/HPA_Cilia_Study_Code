@@ -44,9 +44,14 @@ This repository contains instructions and programming code for analyses of the d
 Images downloaded and assembled as described above can be subjected to the [segmentation script](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Image%20segmentation) to create cilia, basal body, and nucleus segmentations.
 
 ## (3)  Run CiliaQ analysis on the segmented images
-1. Run CiliaQ analysis (CiliaQ version V0.2.1) on all 7-channel images with the following CiliaQ settings
+1. Run [CiliaQ](https://github.com/hansenjn/CiliaQ) analysis (CiliaQ version [V0.2.1](https://github.com/hansenjn/CiliaQ/releases/tag/v0.2.1), which needs to be manually installed (not through ImageJ update sites)) on all 7-channel images with the following CiliaQ settings
 
-*TODO - add screenshots*
+![image](https://github.com/user-attachments/assets/78540b59-f8b5-465a-b257-a588213a884a)
+
+![image](https://github.com/user-attachments/assets/f7e96b45-256f-4b17-883a-8a253c95d91c)
+
+![image](https://github.com/user-attachments/assets/3e11ba05-25a9-4b45-bd07-6d28874f6922)
+
 
 2. Collect all CiliaQ output files ending with ```_CQs.txt``` in a folder.
 3. Add the table legend file provided [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Merging_CiliaQ_output_files/0000_Header_CQs.txt) to the folder with all CiliaQ's ```_CQs.txt``` output files. Make sure that this legend file is the first item when alphabetically sorting all files in the folder (if not rename to have it become the first item while keeping the file ending ```_CQs.txt``` intact)
