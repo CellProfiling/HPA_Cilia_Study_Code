@@ -181,4 +181,4 @@ class CustomCallback(Callback):
 
 ## License
 
-This project is designed for research purposes.
+See repository license: https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/LICENSE.
