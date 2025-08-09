@@ -7,12 +7,15 @@ We also provide a license in this repository for all code where the license is n
 1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., https://www.proteinatlas.org/ENSG00000137691.xml for CFAP300.
 2. In the XML search for the subassay with subtype ("ciliated cell lines"): ```<subAssay type="human" subtype="ciliated cell lines"> ... </subAssay>```
 
-![image](https://github.com/user-attachments/assets/d36c0976-48eb-4c22-b280-77ef9b9c0a4c)
-
+<p align="center">
+   <img src="https://github.com/user-attachments/assets/d36c0976-48eb-4c22-b280-77ef9b9c0a4c" width=800>
+</p>
 
 3. Nested in the subAssay element you will find different "data" elements, which each represent the images for a specific cell line.
 
-![image](https://github.com/user-attachments/assets/675443fd-7e28-4ee8-b95e-bf596999fde8)
+<p align="center">
+   <img src="https://github.com/user-attachments/assets/675443fd-7e28-4ee8-b95e-bf596999fde8" width=600>
+</p>
 
 4. This allows you to see the links for all z planes. E.g., for the image in the screenshot, this reveals 21 different z planes with their corresponding links:
    1. For z_index=1: ```https://images.proteinatlas.org/38585/2146_D7_42_blue_red_green.jpg```
@@ -48,12 +51,13 @@ Images downloaded and assembled as described above can be subjected to the [segm
 ## (3)  Run CiliaQ analysis on the segmented images
 1. Run [CiliaQ](https://github.com/hansenjn/CiliaQ) analysis (CiliaQ version [V0.2.1](https://github.com/hansenjn/CiliaQ/releases/tag/v0.2.1), which needs to be manually installed (not through ImageJ update sites)) on all 7-channel images with the following CiliaQ settings
 
-![image](https://github.com/user-attachments/assets/78540b59-f8b5-465a-b257-a588213a884a)
-
-![image](https://github.com/user-attachments/assets/f7e96b45-256f-4b17-883a-8a253c95d91c)
-
-![image](https://github.com/user-attachments/assets/3e11ba05-25a9-4b45-bd07-6d28874f6922)
-
+<p align="center">
+   <img src="https://github.com/user-attachments/assets/78540b59-f8b5-465a-b257-a588213a884a" width=400>
+   </br></br>
+   <img src="https://github.com/user-attachments/assets/f7e96b45-256f-4b17-883a-8a253c95d91c" width=700>
+   </br></br>
+   <img src="https://github.com/user-attachments/assets/3e11ba05-25a9-4b45-bd07-6d28874f6922" width=500>   
+</p>
 
 2. Collect all CiliaQ output files ending with ```_CQs.txt``` in a folder.
 3. Add the table legend file provided [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Merging_CiliaQ_output_files/0000_Header_CQs.txt) to the folder with all CiliaQ's ```_CQs.txt``` output files. Make sure that this legend file is the first item when alphabetically sorting all files in the folder (if not rename to have it become the first item while keeping the file ending ```_CQs.txt``` intact)
