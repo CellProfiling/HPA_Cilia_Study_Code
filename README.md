@@ -1,6 +1,8 @@
 # HPA Cilia Study - Code repository
 This repository contains instructions and programming code for analyses of the data presented in the preprint ["Intrinsic Heterogeneity of Primary Cilia Revealed Through Spatial Proteomics (DOI: 10.1101/2024.10.20.619273)"](https://www.biorxiv.org/content/10.1101/2024.10.20.619273). Please cite our preprint if you reuse data or code.
 
+We also provide a license in this repository for all code where the license is not otherwise specified in the code.
+
 ## (1) Downloading data from the protein atlas
 1. Query the XML data for the ENSEMBL gene ID of your interest through a link composed of ```https://www.proteinatlas.org/``` + ENSEMBL ID (e.g., ```ENSG00000137691```) + ```.xml```, e.g., https://www.proteinatlas.org/ENSG00000137691.xml for CFAP300.
 2. In the XML search for the subassay with subtype ("ciliated cell lines"): ```<subAssay type="human" subtype="ciliated cell lines"> ... </subAssay>```
@@ -69,7 +71,8 @@ Images downloaded and assembled as described above can be subjected to the [segm
 See readme in https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cell%20cycle%20prediction.
 
 ## (6) Analyze cell cycle prediction data
-See readme in https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cell%20cycle%20prediction.
+1. Validate GMNN prediction values based on predicting on images with other cell cycle markers stained in an additional channel (related to [the preprint](https://www.biorxiv.org/content/10.1101/2024.10.20.619273v3.full) Figure 4H). A jupyter notebook showing how to normalize intensities and plot the predicted nuclear GMNN intensity versus the real intensity in the protein channel as well as running statistics is shown [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Analyzing_cell_cycle_prediction_data/CC_Model_AnalyzeAndPlot_Validation_Data.ipynb)
+2. Combine measures of nuclear predicted GMNN intensity with CiliaQ measurements of ciliary intensity (or other cilia parameters). The code is producing [the preprint](https://www.biorxiv.org/content/10.1101/2024.10.20.619273v3.full) Figure 4I). A jupyter notebook showing how to normalize intensities and plot the predicted nuclear GMNN intensity versus the real intensity in the protein channel as well as running statistics is shown [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Analyzing_cell_cycle_prediction_data/CC_Model_AnalyzeAndPlot_Cilia-Nuclear-Intensity_CKAP2.ipynb); in case you favor using a python script you can find the same code as in the jupyter notebook [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Analyzing_cell_cycle_prediction_data/CC_Model_AnalyzeAndPlot_Cilia-Nuclear-Intensity_CKAP2.py).
 
 ## (7) Other bioinformatic analysis of protein lists
 - [Functional enrichment analysis of protein lists](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/functional-enrichment-analysis)
