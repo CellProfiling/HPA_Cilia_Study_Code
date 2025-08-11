@@ -71,8 +71,9 @@ Images downloaded and assembled as described above can be subjected to the [segm
    2. The output files from this analysis can be further used to cluster and analyze intensity profiles.
 4. To plot intensity profiles follow this [readme file](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Cilia%20profile%20analysis/readme_plot_profiles.md) and use the scripts in [this repository](https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cilia%20profile%20analysis)
 
-## (5) Run cell cycle predictions on images
-See readme in https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cell%20cycle%20prediction.
+## (5) Training cell cycle prediction model and applying it to images
+- See readme file with instructions in https://github.com/CellProfiling/HPA_Cilia_Study_Code/tree/main/Cell%20cycle%20prediction.
+- A pretrained model file is available here: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16783377.svg)](https://doi.org/10.5281/zenodo.16783377).
 
 ## (6) Analyze cell cycle prediction data
 1. Validate GMNN prediction values based on predicting on images with other cell cycle markers stained in an additional channel (related to [the preprint](https://www.biorxiv.org/content/10.1101/2024.10.20.619273v3.full) Figure 4H). A jupyter notebook showing how to normalize intensities and plot the predicted nuclear GMNN intensity versus the real intensity in the protein channel as well as running statistics is shown [here](https://github.com/CellProfiling/HPA_Cilia_Study_Code/blob/main/Analyzing_cell_cycle_prediction_data/CC_Model_AnalyzeAndPlot_Validation_Data.ipynb)
